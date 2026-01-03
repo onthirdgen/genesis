@@ -1,7 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from uuid import UUID, uuid4
+
+
+def utc_timestamp() -> str:
+    """Generate ISO-8601 timestamp with UTC timezone suffix."""
+    return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
 class Segment(BaseModel):
@@ -36,7 +41,7 @@ class CallReceivedEvent(BaseModel):
     eventType: str = "CallReceived"
     aggregateId: str = Field(description="Call ID")
     aggregateType: str = "Call"
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = Field(default_factory=utc_timestamp)
     version: int = 1
     causationId: Optional[str] = None
     correlationId: str = Field(default_factory=lambda: str(uuid4()))
@@ -64,7 +69,7 @@ class CallTranscribedEvent(BaseModel):
     eventType: str = "CallTranscribed"
     aggregateId: str = Field(description="Call ID")
     aggregateType: str = "Call"
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = Field(default_factory=utc_timestamp)
     version: int = 1
     causationId: str = Field(description="Event ID that caused this event")
     correlationId: str = Field(description="Correlation ID from original event")

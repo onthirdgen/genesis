@@ -404,7 +404,6 @@ docker compose exec -T kafka kafka-console-producer \
 - **Main README**: `/Users/jon/AI/genesis/transcription-service/README.md`
 - **Architecture Guide**: `/Users/jon/AI/genesis/call_auditing_architecture.md`
 - **Docker Compose Setup**: `/Users/jon/AI/genesis/docker_compose_1.md`
-- **Project Instructions**: `/Users/jon/AI/genesis/CLAUDE.md`
 
 ## Event Sourcing Principles
 

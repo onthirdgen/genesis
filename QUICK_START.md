@@ -53,20 +53,19 @@ docker compose exec -T postgres psql -U postgres -d call_auditing < schema.sql
 # Check services are running
 docker compose ps
 
-# Test Call Ingestion Service
-curl http://localhost:8081/actuator/health
+# Test API Gateway
+curl http://localhost:8080/actuator/health
 ```
 
 ## Access Points
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Call Ingestion | http://localhost:8081 | - |
-| Transcription | http://localhost:8082 | - |
-| Monitor Service | http://localhost:8088 | - |
+| API Gateway | http://localhost:8080 | - |
 | MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
 | Grafana | http://localhost:3000 | admin / admin |
 | Jaeger | http://localhost:16686 | - |
+| OpenSearch | http://localhost:5601 | - |
 | Prometheus | http://localhost:9090 | - |
 
 ## Common Commands
@@ -85,10 +84,10 @@ docker compose logs -f
 docker compose logs -f call-ingestion-service
 
 # Restart a service
-docker compose restart call-ingestion-service
+docker compose restart api-gateway
 
 # Rebuild service after code changes
-docker compose up -d --build transcription-service
+docker compose up -d --build voc-service
 
 # Check service status
 docker compose ps
@@ -161,11 +160,11 @@ lsof -i :8080
 # OR reduce service memory in docker-compose.yml
 # OR start services incrementally
 
-docker compose up -d kafka postgres minio
+docker compose up -d kafka postgres minio valkey
 # Wait 1 minute
-docker compose up -d prometheus jaeger otel-collector
+docker compose up -d opensearch prometheus
 # Wait 1 minute
-docker compose up -d call-ingestion-service transcription-service monitor-service
+docker compose up -d
 ```
 
 ### Complete reset
@@ -226,17 +225,17 @@ docker system prune -f
 
 ## Service Ports
 
-### Implemented Services
 | Service | Port | Type |
 |---------|------|------|
+| api-gateway | 8080 | Spring Cloud Gateway |
 | call-ingestion-service | 8081 | Spring Boot |
 | transcription-service | 8082 | FastAPI |
-| monitor-service | 8088 | Spring Boot |
-
-### Infrastructure
-| Service | Port | Type |
-|---------|------|------|
-| kafka | 9092/29092 | Kafka |
+| sentiment-service | 8083 | FastAPI |
+| voc-service | 8084 | Spring Boot |
+| audit-service | 8085 | Spring Boot |
+| analytics-service | 8086 | Spring Boot |
+| notification-service | 8087 | Spring Boot |
+| kafka | 9092 | Kafka |
 | postgres | 5432 | PostgreSQL |
 | minio | 9000 | MinIO API |
 | minio-console | 9001 | MinIO UI |
@@ -246,17 +245,15 @@ docker system prune -f
 | prometheus | 9090 | Prometheus |
 | grafana | 3000 | Grafana |
 | jaeger | 16686 | Jaeger UI |
-| otel-collector | 4318 | OTLP HTTP |
 
 ## Next Steps
 
 1. **Read Architecture**: See `call_auditing_architecture.md`
-2. **Development Guide**: See `CLAUDE.md`
-3. **Full Install Guide**: See `INSTALLATION.md`
-4. **Test Upload**: Upload sample audio file when service is implemented
+2. **Full Install Guide**: See `INSTALLATION.md`
+3. **Test Upload**: Upload sample audio file when service is implemented
 
 ## Getting Help
 
 - Detailed troubleshooting: See [INSTALLATION.md](INSTALLATION.md#troubleshooting)
 - Architecture details: See `call_auditing_architecture.md`
-- Development patterns: See `CLAUDE.md`
+- Development patterns: See project documentation

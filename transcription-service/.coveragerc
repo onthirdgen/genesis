@@ -1,0 +1,77 @@
+# Coverage.py configuration for transcription-service
+
+[run]
+# Source code directories to measure
+source = .
+
+# Files/directories to omit from coverage
+omit =
+    tests/*
+    venv/*
+    .venv/*
+    */site-packages/*
+    */__pycache__/*
+    */migrations/*
+    config.py
+    __init__.py
+
+# Enable branch coverage
+branch = True
+
+# Parallel mode for concurrent test execution
+parallel = False
+
+[report]
+# Precision for coverage percentages
+precision = 2
+
+# Show missing lines in the report
+show_missing = True
+
+# Skip files with 100% coverage in the report
+skip_covered = False
+
+# Skip empty files
+skip_empty = True
+
+# Lines to exclude from coverage
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Debug code
+    def __repr__
+    def __str__
+
+    # Defensive programming
+    raise AssertionError
+    raise NotImplementedError
+
+    # Non-runnable code
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+    # Abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+
+    # Overloaded functions (typing)
+    @overload
+
+    # Pass statements
+    pass
+
+# Sort coverage report
+sort = Cover
+
+[html]
+# Directory for HTML coverage reports
+directory = htmlcov
+
+# Title for HTML report
+title = Transcription Service Coverage Report
+
+[xml]
+# File for XML coverage report (for CI/CD)
+output = coverage.xml

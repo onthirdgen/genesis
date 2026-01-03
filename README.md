@@ -2,10 +2,30 @@
 
 A modern, event-driven microservices platform for call auditing with Voice of the Customer (VoC) analytics. Built with Spring Boot, uses 100% free and open-source technologies.
 
+## 🎉 Latest Updates (2026-01-02)
+
+**Authentication & File Upload Now Fully Operational!**
+
+- ✅ **Authentication Fixed**: BCrypt password hash issue resolved - all test users can now log in
+- ✅ **File Upload Working**: HTTP 405 error resolved - file uploads now functional
+- ✅ **UI Integration Complete**: Login and upload flows tested end-to-end
+
+**Test Credentials**: `analyst@example.com` / `password123`
+
+See [UI_TESTING_REPORT.md](UI_TESTING_REPORT.md) for detailed test results and [UI_BACKEND_INTEGRATION_STATUS.md](UI_BACKEND_INTEGRATION_STATUS.md) for integration status.
+
 ## Architecture
 
+### Frontend
+- **UI Framework**: Next.js 15 with React 19
+- **Language**: TypeScript 5.7+ (strict mode)
+- **Styling**: Tailwind CSS 3.x + Shadcn/ui components
+- **State Management**: TanStack Query + Zustand
+- **Authentication**: NextAuth with Zustand persistence
+
+### Backend
 - **Event Sourcing**: Apache Kafka (KRaft mode - no Zookeeper!)
-- **Backend**: Spring Boot 3.2+ with Spring Cloud Gateway
+- **Services**: Spring Boot 4.0 with Spring Cloud Gateway
 - **Search**: OpenSearch 2.x (fully open-source)
 - **Cache**: Valkey 7.2+ (Redis fork by Linux Foundation)
 - **Database**: PostgreSQL 16 with TimescaleDB
@@ -73,31 +93,70 @@ docker compose exec minio mc mb local/calls
 
 ### 4. Access Services
 
+#### Frontend Application
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Call Ingestion Service | http://localhost:8081 | - |
-| Transcription Service | http://localhost:8082 | - |
+| **Call Auditing UI** | http://localhost:4142 | analyst@example.com / password123 |
+
+#### Backend Services
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| API Gateway | http://localhost:8080 | - |
 | Monitor Service | http://localhost:8088 | - |
+
+#### Infrastructure
+| Service | URL | Credentials |
+|---------|-----|-------------|
 | MinIO Console | http://localhost:9001 | minioadmin / minioadmin |
-| Grafana | http://localhost:3000 | admin / admin |
+| Grafana | http://localhost:3001 | admin / admin |
+| OpenSearch Dashboards | http://localhost:5601 | - |
 | Jaeger UI | http://localhost:16686 | - |
 | Prometheus | http://localhost:9090 | - |
+
+**Note**: The Call Auditing UI runs separately from Docker Compose (see Frontend Development below).
+
+### 5. Start the Frontend (Development)
+
+The frontend is a Next.js application that runs separately:
+
+```bash
+# Navigate to the UI directory
+cd call-auditing-ui
+
+# Install dependencies (first time only)
+npm install
+
+# Start development server
+npm run dev
+
+# Access at http://localhost:3000
+```
+
+**Login Credentials (Demo Mode)**:
+- Email: any valid email (e.g., analyst@example.com)
+- Password: minimum 6 characters
+
+**Note**: Port 3000 conflict - If Grafana is running in Docker (port 3000), you'll need to either:
+1. Stop Grafana: `docker compose stop grafana`
+2. Or change the frontend port: `npm run dev -- -p 3001`
 
 ## Testing the System
 
 ```bash
 # Upload a test audio file
-curl -X POST http://localhost:8081/api/calls/upload \
+curl -X POST http://localhost:8080/api/calls/upload \
   -F "file=@test-call.wav" \
   -F "callerId=test-001" \
   -F "agentId=agent-001"
 
 # Check processing status
-curl http://localhost:8081/api/calls/{callId}/status
+curl http://localhost:8080/api/calls/{callId}/status
 
-# Monitor Kafka events
-curl "http://localhost:8088/api/consume/calls.received/from-beginning?limit=10"
-curl "http://localhost:8088/api/consume/calls.transcribed/from-beginning?limit=10"
+# View VoC insights (after processing completes)
+curl http://localhost:8080/api/voc/insights/{callId}
+
+# View audit results
+curl http://localhost:8080/api/audit/calls/{callId}
 ```
 
 ## Project Structure
@@ -105,13 +164,26 @@ curl "http://localhost:8088/api/consume/calls.transcribed/from-beginning?limit=1
 ```
 .
 ├── docker-compose.yml                 # Main orchestration file
+├── call-auditing-ui/                 # Frontend (Next.js + React)
+│   ├── src/
+│   │   ├── app/                      # Next.js App Router pages
+│   │   ├── components/               # React components
+│   │   ├── lib/                      # API client, hooks, stores
+│   │   └── types/                    # TypeScript types
+│   └── package.json
 ├── monitoring/                        # Observability configs
 │   ├── prometheus.yml
 │   ├── otel-collector-config.yaml
 │   └── grafana/
 ├── call-ingestion-service/           # Upload and store audio
 ├── transcription-service/            # Speech-to-text (Whisper)
-└── monitor-service/                  # Kafka message inspection/debugging
+├── sentiment-service/                # Sentiment analysis
+├── voc-service/                      # Voice of Customer analytics
+├── audit-service/                    # Compliance auditing
+├── analytics-service/                # Metrics and KPIs
+├── notification-service/             # Alerts and notifications
+├── monitor-service/                  # Kafka message inspection/debugging
+└── api-gateway/                      # Spring Cloud Gateway
 ```
 
 ## Development
@@ -174,7 +246,7 @@ docker compose logs -f
 docker compose logs -f transcription-service
 
 # Tail last 100 lines
-docker compose logs --tail=100 monitor-service
+docker compose logs --tail=100 voc-service
 ```
 
 ### Stopping Services
@@ -206,7 +278,8 @@ docker compose down -v
 
 ### OpenSearch Dashboards
 - URL: http://localhost:5601
-- Search and analyze call transcriptions (when implemented)
+- Search and analyze call transcriptions
+- VoC insights visualization
 
 ## Technology Stack
 
@@ -322,31 +395,46 @@ All Spring Boot services write logs to `./logs/` directory:
 - Logs rotate at 10MB with 10-day retention
 - Check logs when troubleshooting service-specific issues
 
+### Known Issues & Resolutions
+
+For detailed troubleshooting of previously encountered issues, see **[KNOWN_ISSUES.md](KNOWN_ISSUES.md)**:
+- File upload errors (ERR_INCOMPLETE_CHUNKED_ENCODING) - API Gateway timeout configuration
+- Transcription service OOM crashes - Whisper model size adjustment
+- Additional diagnostics and prevention strategies
+
 ## API Documentation
 
-Implemented services include OpenAPI 3.0 (Swagger) documentation:
+All services now include OpenAPI 3.0 (Swagger) documentation:
 
 | Service | Swagger UI | OpenAPI JSON |
 |---------|------------|--------------|
+| API Gateway | http://localhost:8080/swagger-ui.html | http://localhost:8080/api-docs |
 | Call Ingestion | http://localhost:8081/swagger-ui.html | http://localhost:8081/api-docs |
 | Transcription (FastAPI) | http://localhost:8082/docs | http://localhost:8082/openapi.json |
-| Monitor Service | http://localhost:8088/swagger-ui.html | http://localhost:8088/api-docs |
+| Sentiment (FastAPI) | http://localhost:8083/docs | http://localhost:8083/openapi.json |
+| VoC Service | http://localhost:8084/swagger-ui.html | http://localhost:8084/api-docs |
+| Audit Service | http://localhost:8085/swagger-ui.html | http://localhost:8085/api-docs |
+| Analytics Service | http://localhost:8086/swagger-ui.html | http://localhost:8086/api-docs |
+| Notification Service | http://localhost:8087/swagger-ui.html | http://localhost:8087/api-docs |
+
+**Total**: 54 documented endpoints across 8 services
+
+See `API_DOCUMENTATION_SUMMARY.md` for implementation details.
 
 ## Next Steps
 
-1. **Implement Additional Services**: sentiment-service, voc-service, audit-service, analytics-service, notification-service, api-gateway
-2. **Database Schema**: ~~Create PostgreSQL schema~~ ✅ **Complete**
-3. **API Documentation**: ~~Add OpenAPI/Swagger to implemented services~~ ✅ **Complete**
+1. **Implement Services**: Add business logic to each service
+2. ~~**Database Schema**: Create PostgreSQL schema~~ ✅ **Complete**
+3. ~~**API Documentation**: Add OpenAPI/Swagger to services~~ ✅ **Complete**
 4. **Tests**: Write unit and integration tests
 5. **CI/CD**: Set up GitHub Actions for automated builds
 
 ## Documentation
 
-- `CLAUDE.md` - **Development guidelines for AI assistants**
 - `INSTALLATION.md` - **Complete installation guide (Windows & Mac)**
 - `QUICK_START.md` - **Quick reference for common commands**
+- `API_DOCUMENTATION_SUMMARY.md` - **OpenAPI/Swagger implementation guide**
 - `call_auditing_architecture.md` - Detailed architecture design
-- `implementation_plan.md` - Implementation roadmap
 - `MODERNIZATION_SUMMARY.md` - Technology choices and rationale
 - `voice_to_text_costs.md` - Cost analysis and comparisons
 

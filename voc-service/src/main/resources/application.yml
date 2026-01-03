@@ -1,0 +1,86 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: voc-service
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/call_auditing}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: voc  # Schema-per-Service: voc-service owns voc schema
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: voc-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+opensearch:
+  host: ${OPENSEARCH_HOST:opensearch}
+  port: ${OPENSEARCH_PORT:9200}
+  scheme: ${OPENSEARCH_SCHEME:http}
+  username: ${OPENSEARCH_USERNAME:admin}
+  password: ${OPENSEARCH_PASSWORD:admin}
+
+voc:
+  # Stopwords for keyword extraction
+  stopwords: a,an,the,is,are,was,were,be,been,being,have,has,had,do,does,did,will,would,should,could,may,might,can,of,in,on,at,to,for,with,by,from,about,as,into,through,during,before,after,above,below,between,under,again,further,then,once,here,there,when,where,why,how,all,both,each,few,more,most,other,some,such,no,nor,not,only,own,same,so,than,too,very,i,you,he,she,it,we,they,them,their,what,which,who,whom,this,that,these,those,am,my,your,his,her,its,our,ours
+
+  # Keyword extraction parameters
+  max-keywords: 10
+  min-keyword-length: 3
+
+  # Churn risk thresholds
+  churn-risk:
+    high-threshold: 0.7
+    medium-threshold: 0.4
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.callaudit.voc: INFO
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: DEBUG
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha

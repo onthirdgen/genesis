@@ -47,6 +47,7 @@ public class CallIngestionController {
         @ApiResponse(responseCode = "400", description = "Invalid request or unsupported audio format"),
         @ApiResponse(responseCode = "500", description = "Internal server error during upload")
     })
+    // CORS handled by API Gateway - do not add @CrossOrigin here to avoid duplicate headers
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<CallUploadResponse> uploadCall(
             @Parameter(description = "Audio file (WAV, MP3, M4A, FLAC, OGG)", required = true)
@@ -143,15 +144,22 @@ public class CallIngestionController {
     public ResponseEntity<InputStreamResource> getCallAudio(
             @Parameter(description = "Unique identifier of the call", required = true)
             @PathVariable UUID callId,
-            @Parameter(description = "Audio format", example = "wav")
-            @RequestParam(value = "format", defaultValue = "wav") String format) {
+            @Parameter(description = "Audio format (optional, defaults to stored format)", example = "mp3")
+            @RequestParam(value = "format", required = false) String format) {
 
         try {
-            log.info("Fetching audio for callId: {}, format: {}", callId, format);
-
             // Verify call exists
             Call call = callIngestionService.getCallStatus(callId)
                 .orElseThrow(() -> new RuntimeException("Call not found"));
+
+            // Extract format from stored audioFileUrl if not specified
+            if (format == null || format.isBlank()) {
+                String audioFileUrl = call.getAudioFileUrl();
+                int lastDot = audioFileUrl.lastIndexOf('.');
+                format = (lastDot > 0) ? audioFileUrl.substring(lastDot + 1) : "wav";
+            }
+
+            log.info("Fetching audio for callId: {}, format: {}", callId, format);
 
             // Get audio stream from MinIO
             InputStream audioStream = storageService.downloadFile(callId, format);

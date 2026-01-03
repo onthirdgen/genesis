@@ -1119,11 +1119,37 @@ docker run --rm -v genesis_postgres-data:/data -v $(pwd)/backups:/backup alpine 
 
 ### Testing Strategy
 
+The project implements a comprehensive multi-level testing strategy:
+
 **Unit Tests**: Service logic, pure functions
+- Framework: JUnit 5 + Mockito
+- Fast feedback loop (~15 seconds for 54 tests)
+- No external dependencies required
+
 **Integration Tests**: Kafka producers/consumers, database interactions
-**Contract Tests**: API contracts between services (Pact)
+- H2 in-memory database for repository tests
+- Embedded Kafka for message flow testing
+- Runs in CI/CD without Docker
+
+**Contract Tests**: Real infrastructure integration testing
+- **Framework**: Testcontainers 2.0.3 (Docker Engine 29+ compatible)
+- **Infrastructure**: PostgreSQL (TimescaleDB), MinIO, Kafka in Docker containers
+- **Execution**: Local on-demand via `mvn verify -Pintegration`
+- **Status**: Implemented for call-ingestion-service (3 contract tests)
+- **Note**: Excluded from CI/CD to avoid Docker dependency
+- **Reference**: `/ISSUES_AND_SUGGESTIONS/integration-testing-implementation-summary.md`
+
 **End-to-End Tests**: Full workflow from upload to audit results
+- Planned for future implementation
+
 **Performance Tests**: Load testing with JMeter/Gatling
+- Planned for future implementation
+
+**Testing Tools**:
+- JUnit 5, Mockito, AssertJ (Java testing)
+- pytest, pytest-mock (Python testing)
+- Testcontainers 2.0.3 (contract testing with real infrastructure)
+- Maven Surefire (unit tests), Maven Failsafe (integration tests)
 
 ## Future Enhancements
 

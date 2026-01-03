@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # Available models: tiny, base, small, medium, large
     # Change this value to use a different model - this is the primary config
     # Can be overridden by MODEL_SIZE environment variable if needed
-    model_size: str = "small"
+    model_size: str = "tiny"
 
     model_config = ConfigDict(
         env_prefix="",

@@ -1,0 +1,290 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  # Redis/Valkey configuration for rate limiting
+  redis:
+    host: ${REDIS_HOST:valkey}
+    port: ${REDIS_PORT:6379}
+  data:
+    redis:
+      host: ${REDIS_HOST:valkey}
+      port: ${REDIS_PORT:6379}
+
+  # R2DBC PostgreSQL configuration for user authentication
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://postgres:5432/call_auditing}
+    username: ${SPRING_R2DBC_USERNAME:postgres}
+    password: ${SPRING_R2DBC_PASSWORD:postgres}
+    pool:
+      initial-size: 5
+      max-size: 10
+
+  cloud:
+    gateway:
+      # HTTP client configuration for large file uploads
+      httpclient:
+        response-timeout: 300s  # 5 minutes for large file uploads
+        connect-timeout: 30000  # 30 seconds
+        pool:
+          type: ELASTIC
+          max-idle-time: 30s
+        wiretap: false  # Disable wiretap to prevent chunked encoding issues
+
+      # HTTP server configuration
+      httpserver:
+        wiretap: false
+
+      # Global CORS configuration
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins:
+              - "http://localhost:4142"
+              - "http://localhost:3000"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowed-headers:
+              - "*"
+            exposed-headers:
+              - "Authorization"
+            allow-credentials: true
+            max-age: 3600
+
+      # Route definitions
+      routes:
+        # Analytics Service - Call Listing
+        # Note: More specific routes must come BEFORE less specific ones
+        - id: analytics-calls-list
+          uri: http://analytics-service:8080
+          predicates:
+            - Path=/api/analytics/calls,/api/analytics/calls/**
+          filters:
+            - RewritePath=/api/analytics/calls(?<segment>.*), /api/calls$\{segment}
+            - JwtAuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: analyticsCircuitBreaker
+                fallbackUri: forward:/fallback
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        # Call Ingestion Service
+        # Note: Authentication temporarily disabled for upload endpoint
+        # TODO: Re-enable JWT authentication after implementing proper access control
+        - id: call-ingestion-service
+          uri: http://call-ingestion-service:8080
+          predicates:
+            - Path=/api/calls/**
+          filters:
+            # - JwtAuthenticationFilter  # TODO: Re-enable authentication
+            - name: CircuitBreaker
+              args:
+                name: callIngestionCircuitBreaker
+                fallbackUri: forward:/fallback
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        # VoC Service
+        - id: voc-service
+          uri: http://voc-service:8080
+          predicates:
+            - Path=/api/voc/**
+          filters:
+            - RewritePath=/api/voc/(?<segment>.*), /$\{segment}
+            - name: CircuitBreaker
+              args:
+                name: vocCircuitBreaker
+                fallbackUri: forward:/fallback
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        # Audit Service
+        - id: audit-service
+          uri: http://audit-service:8080
+          predicates:
+            - Path=/api/audit/**
+          filters:
+            - RewritePath=/api/audit/(?<segment>.*), /$\{segment}
+            - name: CircuitBreaker
+              args:
+                name: auditCircuitBreaker
+                fallbackUri: forward:/fallback
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        # Analytics Service - Transcriptions
+        - id: analytics-transcriptions
+          uri: http://analytics-service:8080
+          predicates:
+            - Path=/api/transcriptions/**
+          filters:
+            - JwtAuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: analyticsCircuitBreaker
+                fallbackUri: forward:/fallback
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        # Analytics Service - General Analytics
+        - id: analytics-service
+          uri: http://analytics-service:8080
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - RewritePath=/api/analytics/(?<segment>.*), /$\{segment}
+            - JwtAuthenticationFilter
+            - name: CircuitBreaker
+              args:
+                name: analyticsCircuitBreaker
+                fallbackUri: forward:/fallback
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        # Notification Service
+        - id: notification-service
+          uri: http://notification-service:8080
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - RewritePath=/api/notifications/(?<segment>.*), /$\{segment}
+            - name: CircuitBreaker
+              args:
+                name: notificationCircuitBreaker
+                fallbackUri: forward:/fallback
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+
+        # WebSocket - Call Updates
+        # Routes WebSocket connections to notification-service for real-time updates
+        - id: websocket-call-updates
+          uri: ws://notification-service:8080
+          predicates:
+            - Path=/ws/calls/**
+
+      # Default filters applied to all routes
+      default-filters:
+        - name: DedupeResponseHeader
+          args:
+            name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
+            strategy: RETAIN_FIRST
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+            methods: GET,POST
+            backoff:
+              firstBackoff: 50ms
+              maxBackoff: 500ms
+              factor: 2
+              basedOnPreviousValue: true
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# Resilience4j Circuit Breaker configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      # Custom config for file upload routes with higher slow call threshold
+      fileUpload:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        slowCallDurationThreshold: 9s
+        slowCallRateThreshold: 80
+    instances:
+      callIngestionCircuitBreaker:
+        baseConfig: fileUpload
+      vocCircuitBreaker:
+        baseConfig: default
+      auditCircuitBreaker:
+        baseConfig: default
+      analyticsCircuitBreaker:
+        baseConfig: default
+      notificationCircuitBreaker:
+        baseConfig: default
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.callaudit.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc.postgresql.QUERY: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-change-this-in-production-must-be-at-least-32-characters-long}
+  expiration: ${JWT_EXPIRATION:3600000} # 1 hour in milliseconds
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days in milliseconds

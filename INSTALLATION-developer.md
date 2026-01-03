@@ -413,7 +413,7 @@ Watch logs to ensure services start correctly:
 docker compose logs -f
 
 # Or specific service
-docker compose logs -f call-ingestion-service
+docker compose logs -f api-gateway
 
 # Press Ctrl+C to stop following logs (services keep running)
 ```
@@ -436,29 +436,31 @@ docker compose ps
 # All services should show "Up" or "healthy" status
 ```
 
-Expected services:
-**Infrastructure (10):**
+Expected services (16 total):
 - kafka
 - postgres
 - minio
 - opensearch
 - opensearch-dashboards
 - valkey
+- call-ingestion-service
+- transcription-service
+- sentiment-service
+- voc-service
+- audit-service
+- analytics-service
+- notification-service
+- api-gateway
 - prometheus
 - grafana
 - jaeger
 - otel-collector
 
-**Implemented Services (3):**
-- call-ingestion-service
-- transcription-service
-- monitor-service
-
 ### 2. Test Service Endpoints
 
-**Test Call Ingestion Service**:
+**Test API Gateway**:
 ```bash
-curl http://localhost:8081/actuator/health
+curl http://localhost:8080/actuator/health
 # Expected: {"status":"UP"}
 ```
 
@@ -617,7 +619,7 @@ docker compose ps
 # Restart services in dependency order
 docker compose restart kafka
 sleep 30
-docker compose restart call-ingestion-service transcription-service
+docker compose restart call-ingestion-service voc-service
 ```
 
 ### Issue: MinIO Bucket Creation Fails
@@ -725,7 +727,7 @@ curl -X POST http://localhost:8080/api/calls/upload \
   -F "agentId=test-agent"
 
 # Monitor processing in logs
-docker compose logs -f transcription-service
+docker compose logs -f transcription-service sentiment-service
 ```
 
 ### 2. Explore Observability
@@ -746,7 +748,6 @@ docker compose logs -f transcription-service
 
 Read these documents to understand the system:
 - `call_auditing_architecture.md` - Detailed architecture and design
-- `CLAUDE.md` - Development guidelines and patterns
 - `MODERNIZATION_SUMMARY.md` - Technology choices
 
 ### 4. Development Workflow

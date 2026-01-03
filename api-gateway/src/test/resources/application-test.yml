@@ -1,0 +1,39 @@
+# Test configuration for API Gateway
+
+spring:
+  application:
+    name: api-gateway-test
+
+  # Use embedded Redis for testing (or disable rate limiting)
+  redis:
+    host: localhost
+    port: 6379
+
+  cloud:
+    gateway:
+      # Simplified routes for testing
+      routes:
+        - id: test-route
+          uri: http://localhost:9999
+          predicates:
+            - Path=/test/**
+
+# Disable Actuator security for tests
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+# Disable circuit breaker for tests
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: false
+
+# Quieter logging for tests
+logging:
+  level:
+    root: WARN
+    com.callaudit.gateway: INFO

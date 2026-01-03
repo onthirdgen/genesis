@@ -1,30 +1,45 @@
-# ============================================
-# Genesis Call Auditing Platform - .gitignore
-# ============================================
-
-# ============================================
-# Java / Maven
-# ============================================
-target/
-!.mvn/wrapper/maven-wrapper.jar
+# Compiled class files
 *.class
+
+# Log files
+*.log
+
+# Package Files
 *.jar
 *.war
 *.ear
-*.log
+*.zip
+*.tar.gz
+*.rar
 
 # Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 
-# ============================================
+# Gradle
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
 # Python
-# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+env/
+venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -40,191 +55,129 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Virtual environments
-venv/
-env/
-ENV/
-.venv
-
-# Whisper model cache (transcription-service)
-.cache/
-*.pt
-
-# ============================================
-# IDE & Editors
-# ============================================
-
-# IntelliJ IDEA
+# IDE
 .idea/
 *.iml
-*.iws
 *.ipr
-out/
-
-# VS Code
+*.iws
 .vscode/
-*.code-workspace
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IntelliJ
+out/
+.idea_modules/
 
 # Eclipse
 .classpath
 .project
 .settings/
+bin/
 
-# NetBeans
-nbproject/
-nbbuild/
-nbdist/
-.nb-gradle/
+# Spring Boot
+spring-boot-starter-parent/
+.factorypath
 
-# ============================================
-# OS Files
-# ============================================
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-.directory
-
-# ============================================
-# Docker & Data
-# ============================================
-
-# Docker volumes (data is managed by docker-compose)
-# Note: Keeping these in .gitignore to avoid accidentally committing data
-*.log
-
-# Application logs
-logs/
-*.log
-*.log.*
-
-# ============================================
-# Environment & Secrets
-# ============================================
+# Docker volumes (local development)
+data/
+volumes/
 
 # Environment variables
 .env
 .env.local
 .env.*.local
-.env.production
 
-# Secrets
-secrets/
-*.pem
-*.key
-*.p12
-*.jks
-credentials.json
-
-# ============================================
-# Application Specific
-# ============================================
-
-# Spring Boot
-spring.log
-application-local.yml
-application-dev.yml
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-*.bak
-*.swp
-*.swo
-
-# Test output
-test-results/
-coverage/
-.coverage
-htmlcov/
-.pytest_cache/
-.tox/
-
-# ============================================
-# Build & Generated Files
-# ============================================
-
-# Generated client libraries
-generated-clients/
-
-# API documentation exports
-*-api.json
-api-specs/
-
-# Database dumps
-*.sql.backup
-*.dump
-
-# ============================================
-# Monitoring & Observability
-# ============================================
-
-# Grafana data (should be in volumes)
-monitoring/grafana/data/
-
-# Prometheus data (should be in volumes)
-monitoring/prometheus/data/
-
-# ============================================
-# Audio Files (Development)
-# ============================================
-
-# Test audio files (keep small samples in git, exclude large files)
+# Audio files (large)
 *.wav
 *.mp3
 *.m4a
 *.flac
-*.ogg
+test-audio/
 
-# Allow specific test files if needed
-!test-samples/*.wav
-!test-samples/*.mp3
+# ML Models cache
+*.pt
+*.pth
+models/
+.cache/
+
+# Database
+*.db
+*.sqlite
+*.sql.backup
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Logs
+logs/
+*.log.*
+
+# Backup files
+*.bak
+*.backup
+
+# Generated files
+generated/
+temp/
+tmp/
 
 # ============================================
-# Node.js (if added later)
+# Node.js / Frontend
 # ============================================
+
+# Dependencies
 node_modules/
-npm-debug.log
-yarn-error.log
-package-lock.json
-yarn.lock
+.npm/
+.yarn/
+.pnp.*
+.pnp.js
 
-# ============================================
-# Miscellaneous
-# ============================================
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Archives
-*.zip
-*.tar.gz
-*.rar
-*.7z
+# Next.js
+.next/
+*.tsbuildinfo
 
-# Compiled binaries
-*.exe
-*.dll
-*.dylib
+# Build outputs
+.swc/
+.turbo/
 
-# Core dumps
-core
-*.core
+# Testing
+playwright-report/
+test-results/
+coverage/
+.nyc_output/
+.vitest/
 
-# Large data files
-*.csv
-*.parquet
-*.feather
+# Vercel deployment
+.vercel/
 
+# Sentry
+.sentryclirc
+sentry.properties
+
+# Cache files
+.eslintcache
+*.tgz
+
+# Storybook
+storybook-static/
+.storybook-out/
+
+# Private files and AI assistant configuration
+.private/
 .claude/
-CLAUDE.md

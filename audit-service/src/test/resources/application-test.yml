@@ -1,0 +1,61 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE SCHEMA IF NOT EXISTS audit
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        temp:
+          use_jdbc_metadata_defaults: false
+    show-sql: false
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: audit-service-test
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# Kafka topic configuration
+audit:
+  kafka:
+    topics:
+      transcribed: calls.transcribed
+      sentiment-analyzed: calls.sentiment-analyzed
+      voc-analyzed: calls.voc-analyzed
+      audited: calls.audited
+
+# Audit scoring configuration
+  scoring:
+    weights:
+      script-adherence: 0.30
+      customer-service: 0.40
+      resolution-effectiveness: 0.30
+    thresholds:
+      pass-score: 70
+      review-score: 50
+
+logging:
+  level:
+    com.callaudit.audit: DEBUG
+    org.springframework.kafka: WARN
+    org.hibernate: WARN

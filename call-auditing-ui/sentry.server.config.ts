@@ -1,0 +1,21 @@
+import * as Sentry from '@sentry/nextjs';
+import { env } from '@/lib/env';
+
+Sentry.init({
+  dsn: env.NEXT_PUBLIC_SENTRY_DSN,
+
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
+  // We recommend adjusting this value in production to reduce volume and costs.
+  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+
+  // Setting this option to true will print useful information to the console while you're setting up Sentry.
+  debug: false,
+
+  // Environment
+  environment: process.env.NODE_ENV,
+
+  // You can add custom error filtering here
+  beforeSend(event) {
+    return event;
+  },
+});
